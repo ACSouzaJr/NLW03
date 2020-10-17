@@ -1,7 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, View, Text } from "react-native";
-import MapView, { Callout, Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, {
+  Callout,
+  Marker,
+  PROVIDER_GOOGLE,
+  Region,
+} from "react-native-maps";
 import { Feather } from "@expo/vector-icons";
+import * as Location from "expo-location";
 
 import mapMarker from "../assets/map-marker.png";
 import { useNavigation } from "@react-navigation/native";
@@ -14,9 +20,35 @@ interface Orphanage {
   longitude: number;
 }
 
+// pegar a localização demora muito
 export default function OrphanagesMap() {
   const [orphanages, setOrphanages] = useState<Orphanage[]>([]);
+  const [location, setLocation] = useState<Region>({
+    latitude: -15.8466048,
+    longitude: -47.9035392,
+    latitudeDelta: 0.008,
+    longitudeDelta: 0.008,
+  });
   const navigation = useNavigation();
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permission to access location was denied");
+      }
+
+      try {
+        let userLocation = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = userLocation.coords;
+
+        setLocation({ ...location, latitude, longitude });
+        console.log(userLocation.coords);
+      } catch (error) {
+        alert("Cant get current location");
+      }
+    })();
+  }, []);
 
   function navigateToOrphanageDetails(id: number) {
     navigation.navigate("OrphanagesDetails", { id });
@@ -31,12 +63,13 @@ export default function OrphanagesMap() {
       <MapView
         provider={PROVIDER_GOOGLE}
         style={styles.mapStyle}
-        initialRegion={{
-          latitude: -15.8466048,
-          longitude: -47.9035392,
-          latitudeDelta: 0.008,
-          longitudeDelta: 0.008,
-        }}
+        // initialRegion={{
+        //   latitude: location.latitude,
+        //   longitude: location.longitude,
+        //   latitudeDelta: 0.008,
+        //   longitudeDelta: 0.008,
+        // }}
+        region={location}
       >
         <Marker
           icon={mapMarker}
